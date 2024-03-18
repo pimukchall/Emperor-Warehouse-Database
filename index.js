@@ -3,8 +3,9 @@ const express = require("express");
 const mysql = require("mysql2");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
 const bcrypt = require("bcrypt");
+const multer  = require('multer')
+const upload = multer({ dest: 'uploads/' })
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -13,19 +14,24 @@ const connection = mysql.createConnection({
 });
 
 const app = express();
+
 app.use(express.json());
-app.use(cors({ 
+
+const allowedOrigins = ['https://emp-lv19lq3ja-usbseven.vercel.app', 'http://localhost:3000'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  origin: ['http://localhost:3000'] 
-}));
+};
+
+app.use(cors(corsOptions));
+
 app.use(cookieParser());
-
-app.use(session({
-  secret: 'secret',
-  resave: false,
-  saveUninitialized: true,
-}));
-
 const port = 3001
 const secret = 'mysecret'
 
@@ -34,16 +40,12 @@ app.listen(port, () => {
 });
 
 app.get("/", function (req, res, next) {
-  res.send("Hello My EMP!");
-});
-
-app.get("/test", function (req, res, next) {
-  res.json({ message : "Hello My EMP!" })
+  res.send("The Emperor House API is working");
 });
 
 // Login ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-app.post("/api/user/login", async (req, res) => {
+app.post("/api/users/login", async (req, res) => {
   try {
     const { email, password } = req.body
     const [results] = await connection.promise().query("SELECT * FROM `users` WHERE `email` = ?", email)
@@ -65,10 +67,11 @@ app.post("/api/user/login", async (req, res) => {
       sameSite: 'none',
      })
 
-    res.json({
-      message: "Login success",
-      token,
+     res.json({ 
+      success: true,
+        token: token,
     })
+
   } catch (error) {
     console.log('error', error)
     res.status(401).json({
@@ -78,41 +81,58 @@ app.post("/api/user/login", async (req, res) => {
   }
 });
 
-app.get("/api/user", async (req, res) => {
-  try{
-    const authToken = req.cookies.token
-    console.log('authToken', authToken)
-    const user = jwt.verify(authToken, secret)
-    const [checkResults] = await connection.promise().query('SELECT * FROM users WHERE email = ?', [user.email])
-    
-    if (checkResults.length === 0) {
-      throw { message: 'user not found' }
+app.get("/api/users/verify", async (req, res) => {
+  try {
+    const token = req.cookies.token
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' })
     }
+    const decoded = jwt.verify(token, secret)
+    res.json({ message: 'Authorized', decoded })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: 'Internal server error' })
+  }
+}
+);
 
-    const [results] = await connection.promise().query('SELECT * FROM users')
+app.get("/api/users/me", async (req, res) => {
+  try {
+    const token = req.cookies.token
+    console.log('token', token)
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+    const decoded = jwt.verify(token, secret)
+    const [results] = await connection.promise().query('SELECT * FROM users WHERE id = ?', decoded.id)
+    const userData = results[0]
     res.json({
-      users: results,
+      user: {
+        id: userData.id,
+        fname: userData.fname,
+        lname: userData.lname,
+        email: userData.email
+      }
     })
   } catch (error) {
-    console.log('error', error)
-    res.status(403).json({
-      message: 'authentication failed',
-      error
-    })
+    console.error(error)
+    res.status(500).json({ message: 'Internal server error' })
   }
 })
 
-// Users ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.get("/api/users", function (req, res, next) {
-  connection.query("SELECT * FROM `users`", function (err, results, fields) {
-    res.json(results);
-  });
-});
+app.delete("/api/users/logout", (req, res) => {
+  res.clearCookie('token')
+  res.json({ message: 'Logged out' })
+})
 
-app.get("/api/users/departments", function (req, res, next) {
-  connection.query("SELECT `id`, `fname`, `lname`, `name_department`, `email`, `username`, `password`, `phone`, `date_in`, `avatar` FROM `users` JOIN departments ON users.id_department = departments.id_department", function (err, results, fields) {
+// Users ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+app.get("/api/users", async (req, res) => {
+  connection.query( "SELECT * FROM `users`",
+  function (err, results, fields) {
     res.json(results);
-  });
+  }
+  );
 });
 
 app.get("/api/users/:id", function (req, res, next) {
@@ -126,20 +146,21 @@ app.get("/api/users/:id", function (req, res, next) {
   );
 });
 
+
 app.post("/api/users/register", async (req, res) => {
   try {
-    const { fname, lname, id_department, email, username, password, phone, date_in, avatar } = req.body
+    const { fname, lname, department_id, role_id, email, password, phone, date_in, image } = req.body
     const passwordHash = await bcrypt.hash(password, 10)
     const userData = {
       fname,
       lname,
-      id_department,
+      department_id,
+      role_id,
       email,
-      username,
       password: passwordHash,
       phone,
       date_in,
-      avatar
+      image
     }
     const [results] = await connection.promise().query("INSERT INTO `users` SET ?", userData)
     res.json({
@@ -156,16 +177,15 @@ app.post("/api/users/register", async (req, res) => {
 });
 app.put("/api/users/update", function (req, res, next) {
   connection.query(
-    "UPDATE `users` SET `fname`= ?, `lname`= ?, `id_department`= ?, `email`= ?, `username`= ?, `password`= ?, `phone`= ?, `avatar`= ? WHERE id = ?",
+    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `image`= ? WHERE id = ?",
     [
       req.body.fname,
       req.body.lname,
-      req.body.id_department,
+      req.body.department_id,
+      req.body.role_id,
       req.body.email,
-      req.body.username,
-      req.body.password,
       req.body.phone,
-      req.body.avatar,
+      req.body.image,
       req.body.id,
 
     ],
@@ -174,6 +194,24 @@ app.put("/api/users/update", function (req, res, next) {
     }
   );
 });
+
+app.put("/api/users/updatePassword", async (req, res) => {
+  try {
+    const { id, password } = req.body
+    const passwordHash = await bcrypt.hash(password, 10)
+    const [results] = await connection.promise().query('UPDATE users SET password = ? WHERE id = ?', [passwordHash, id])
+    res.json({
+      message: 'Password updated',
+      results
+    })
+  } catch (error) {
+    console.log(error)
+    res.json({
+      message: 'Password update failed',
+      error
+    })
+  }
+})
 
 app.delete("/api/users/delete", function (req, res, next) {
   try {
@@ -200,11 +238,11 @@ app.get("/api/notebooks", function (req, res, next) {
   );
 });
 
-app.get("/api/notebooks/:id_notebook", function (req, res, next) {
-  const id_notebook = req.params.id_notebook;
+app.get("/api/notebooks/:id", function (req, res, next) {
+  const id = req.params.id;
   connection.query(
-    "SELECT * FROM `notebooks` WHERE `id_notebook` = ?",
-    [id_notebook],
+    "SELECT * FROM `notebooks` WHERE `id` = ?",
+    [id],
     function (err, results) {
       res.json(results);
     }
@@ -213,7 +251,7 @@ app.get("/api/notebooks/:id_notebook", function (req, res, next) {
 
 app.post("/api/notebooks/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `notebooks`(`brand`, `model`, `cpu`, `gpu`, `ram`, `storage`, `os`, `asset_number`, `license_window`, `id`, `id_store` , `note`, `date_in`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO `notebooks`(`brand`, `model`, `cpu`, `gpu`, `ram`, `storage`, `os`, `asset_number`, `license_window`, `user_id`, `store_id`, `date_in`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
     [
       req.body.brand,
       req.body.model,
@@ -224,9 +262,8 @@ app.post("/api/notebooks/create", function (req, res, next) {
       req.body.os,
       req.body.asset_number,
       req.body.license_window,
-      req.body.id,
-      req.body.id_store,
-      req.body.note,
+      req.body.user_id,
+      req.body.store_id,
       req.body.date_in,
     ],
     function (err, results) {
@@ -237,7 +274,7 @@ app.post("/api/notebooks/create", function (req, res, next) {
 
 app.put("/api/notebooks/update", function (req, res, next) {
   connection.query(
-    "UPDATE `notebooks` SET `brand`= ?, `model`= ?, `cpu`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `asset_number`= ?, `license_window`= ?, `id`= ?, `id_store`= ?, `note`= ?, `date_in`= ? WHERE id_notebook = ?",
+    "UPDATE `notebooks` SET `brand`= ?, `model`= ?, `cpu`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `asset_number`= ?, `license_window`= ?, `user_id`= ?, `store_id`= ? WHERE id = ?",
     [
       req.body.brand,
       req.body.model,
@@ -248,11 +285,9 @@ app.put("/api/notebooks/update", function (req, res, next) {
       req.body.os,
       req.body.asset_number,
       req.body.license_window,
+      req.body.user_id,
+      req.body.store_id,
       req.body.id,
-      req.body.id_store,
-      req.body.note,
-      req.body.date_in,
-      req.body.id_notebook,
     ],
     function (err, results) {
       res.json(results);
@@ -263,8 +298,8 @@ app.put("/api/notebooks/update", function (req, res, next) {
 app.delete("/api/notebooks/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `notebooks` WHERE id_notebook = ?",
-      [req.query.id_notebook],
+      "DELETE FROM `notebooks` WHERE id = ?",
+      [req.query.id],
       (err, results) => {
         if (err) {
           res.status(500).json({ err });
@@ -285,11 +320,11 @@ app.get("/api/equipments", function (req, res, next) {
   );
 });
 
-app.get("/api/equipments/:id_equipment", function (req, res, next) {
-  const id_equipment = req.params.id_notebook;
+app.get("/api/equipments/:id", function (req, res, next) {
+  const id = req.params.id;
   connection.query(
-    "SELECT * FROM `equipments` WHERE `id_equipment` = ?",
-    [id_equipment],
+    "SELECT * FROM `equipments` WHERE `id` = ?",
+    [id],
     function (err, results) {
       res.json(results);
     }
@@ -298,19 +333,18 @@ app.get("/api/equipments/:id_equipment", function (req, res, next) {
 
 app.post("/api/equipments/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `equipments`(`equipment_name`, `id_location`, `id`, `id_store` , `asset_number`, `department_number`, `price`, `note`, `image`, `date_in`, `date_out`) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+    "INSERT INTO `equipments`(`name`, `location_id`, `user_id`, `store_id` , `asset_number`, `document_number`, `price`, `quantity`, `image`, `date_in`) VALUES (?,?,?,?,?,?,?,?,?,?)",
     [
-      req.body.equipment_name,
-      req.body.id_location,
-      req.body.id,
-      req.body.id_store,
+      req.body.name,
+      req.body.location_id,
+      req.body.user_id,
+      req.body.store_id,
       req.body.asset_number,
-      req.body.department_number,
+      req.body.document_number,
       req.body.price,
-      req.body.note,
+      req.body.quantity,
       req.body.image,
       req.body.date_in,
-      req.body.date_out,
     ],
     function (err, results) {
       res.json(results);
@@ -320,20 +354,19 @@ app.post("/api/equipments/create", function (req, res, next) {
 
 app.put("/api/equipments/update", function (req, res, next) {
   connection.query(
-    "UPDATE `equipments` SET `equipment_name`= ?, `id_location`= ?, `id`= ?, `id_store`= ?, `asset_number`= ?, `department_number`= ?, `price`= ?, `note`= ?, `image`= ?, `date_in`= ?, `date_out`= ? WHERE id_equipment = ?",
+    "UPDATE `equipments` SET `name`= ?, `location_id`= ?, `user_id`= ?, `store_id`= ?, `asset_number`= ?, `document_number`= ?, `price`= ?,`quantity`= ?, `image`= ?, `date_out`= ? WHERE id = ?",
     [
-      req.body.equipment_name,
-      req.body.id_location,
-      req.body.id,
-      req.body.id_store,
+      req.body.name,
+      req.body.location_id,
+      req.body.user_id,
+      req.body.store_id,
       req.body.asset_number,
-      req.body.department_number,
+      req.body.document_number,
       req.body.price,
-      req.body.note,
+      req.body.quantity,
       req.body.image,
-      req.body.date_in,
       req.body.date_out,
-      req.body.id_equipment,
+      req.body.id,
     ],
     function (err, results) {
       res.json(results);
@@ -343,8 +376,8 @@ app.put("/api/equipments/update", function (req, res, next) {
 app.delete("/api/equipments/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `equipments` WHERE id_equipment = ?",
-      [req.query.id_equipment],
+      "DELETE FROM `equipments` WHERE id = ?",
+      [req.query.id],
       (err, results) => {
         if (err) {
           res.status(500).json({ err });
@@ -365,11 +398,11 @@ app.get("/api/locations", function (req, res, next) {
   );
 });
 
-app.get("/api/locations/:id_location", function (req, res, next) {
-  const id_location = req.params.id_location;
+app.get("/api/locations/:id", function (req, res, next) {
+  const id = req.params.id;
   connection.query(
-    "SELECT * FROM `locations` WHERE `id_location` = ?",
-    [id_location],
+    "SELECT * FROM `locations` WHERE `id` = ?",
+    [id],
     function (err, results) {
       res.json(results);
     }
@@ -378,8 +411,8 @@ app.get("/api/locations/:id_location", function (req, res, next) {
 
 app.post("/api/locations/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `locations`(`id_location`, `location_name`, `address`) VALUES (?,?,?)",
-    [req.body.id_location, req.body.location_name, req.body.address],
+    "INSERT INTO `locations`(`id`, `name`, `address`) VALUES (?,?,?)",
+    [req.body.id, req.body.name, req.body.address],
     function (err, results) {
       res.json(results);
     }
@@ -388,12 +421,11 @@ app.post("/api/locations/create", function (req, res, next) {
 
 app.put("/api/locations/update", function (req, res, next) {
   connection.query(
-    "UPDATE `locations` SET `id_location`= ?, `location_name`= ?, `address`= ? WHERE id_location = ?",
+    "UPDATE `locations` SET `location_name`= ?, `address`= ? WHERE id = ?",
     [
-      req.body.id_location,
-      req.body.location_name,
+      req.body.name,
       req.body.address,
-      req.body.id_location,
+      req.body.id,
     ],
     function (err, results) {
       res.json(results);
@@ -404,8 +436,8 @@ app.put("/api/locations/update", function (req, res, next) {
 app.delete("/api/locations/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `locations` WHERE id_location = ?",
-      [req.query.id_location],
+      "DELETE FROM `locations` WHERE id = ?",
+      [req.query.id],
       (err, results) => {
         if (err) {
           res.status(500).json({ err });
@@ -426,11 +458,11 @@ app.get("/api/departments", function (req, res, next) {
   );
 });
 
-app.get("/api/departments/:id_department", function (req, res, next) {
-  const id_department = req.params.id_department;
+app.get("/api/departments/:id", function (req, res, next) {
+  const id = req.params.id;
   connection.query(
-    "SELECT * FROM `departments` WHERE `id_department` = ?",
-    [id_department],
+    "SELECT * FROM `departments` WHERE `id` = ?",
+    [id],
     function (err, results) {
       res.json(results);
     }
@@ -439,8 +471,8 @@ app.get("/api/departments/:id_department", function (req, res, next) {
 
 app.post("/api/departments/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `departments`(`id_department`, `department_name`) VALUES (?,?)",
-    [req.body.id_department, req.body.department_name],
+    "INSERT INTO `departments`(`id`, `name`) VALUES (?,?)",
+    [req.body.id, req.body.name],
     function (err, results) {
       res.json(results);
     }
@@ -449,8 +481,8 @@ app.post("/api/departments/create", function (req, res, next) {
 
 app.put("/api/departments/update", function (req, res, next) {
   connection.query(
-    "UPDATE `departments` SET `id_department`= ?, `department_name`= ? WHERE id_department = ?",
-    [req.body.id_department, req.body.department_name, req.body.id_department],
+    "UPDATE `departments` SET `id`= ?, `name`= ? WHERE id = ?",
+    [req.body.id, req.body.name, req.body.id],
     function (err, results) {
       res.json(results);
     }
@@ -460,8 +492,8 @@ app.put("/api/departments/update", function (req, res, next) {
 app.delete("/api/departments/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `departments` WHERE id_department = ?",
-      [req.query.id_department],
+      "DELETE FROM `departments` WHERE id = ?",
+      [req.query.id],
       (err, results) => {
         if (err) {
           res.status(500).json({ err });
@@ -479,11 +511,11 @@ app.get("/api/stores", function (req, res, next) {
   });
 });
 
-app.get("/api/stores/:id_store", function (req, res, next) {
-  const id_store = req.params.id_store;
+app.get("/api/stores/:id", function (req, res, next) {
+  const id = req.params.id;
   connection.query(
-    "SELECT * FROM `stores` WHERE `id_store` = ?",
-    [id_store],
+    "SELECT * FROM `stores` WHERE `id` = ?",
+    [id],
     function (err, results) {
       res.json(results);
     }
@@ -492,8 +524,8 @@ app.get("/api/stores/:id_store", function (req, res, next) {
 
 app.post("/api/stores/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `stores`(`id_store`, `name_store`) VALUES (?,?)",
-    [req.body.id_store, req.body.name_store],
+    "INSERT INTO `stores`(`id`, `name`, `address`) VALUES (?,?,?)",
+    [req.body.id, req.body.name, req.body.address],
     function (err, results) {
       res.json(results);
     }
@@ -502,8 +534,8 @@ app.post("/api/stores/create", function (req, res, next) {
 
 app.put("/api/stores/update", function (req, res, next) {
   connection.query(
-    "UPDATE `stores` SET `id_store`= ?, `name_store`= ? WHERE id_store = ?",
-    [req.body.id_store, req.body.name_store, req.body.id_store],
+    "UPDATE `stores` SET `name`= ? , `address`= ? WHERE id = ?",
+    [req.body.name, req.body.address ,req.body.id],
     function (err, results) {
       res.json(results);
     }
@@ -513,8 +545,61 @@ app.put("/api/stores/update", function (req, res, next) {
 app.delete("/api/stores/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `stores` WHERE id_store = ?",
-      [req.query.id_store],
+      "DELETE FROM `stores` WHERE id = ?",
+      [req.query.id],
+      (err, results) => {
+        if (err) {
+          res.status(500).json({ err });
+        }
+        return res.status(200).json(results);
+      }
+    );
+  } catch (error) {}
+});
+
+// roles -----------------------------------------------------------------------------------------------------------
+app.get("/api/roles", function (req, res, next) {
+  connection.query("SELECT * FROM `roles`", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/roles/:id", function (req, res, next) {
+  const id = req.params.id;
+  connection.query(
+    "SELECT * FROM `roles` WHERE `id` = ?",
+    [id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/roles/create", function (req, res, next) {
+  connection.query(
+    "INSERT INTO `roles`(`id`, `name`) VALUES (?,?)",
+    [req.body.id, req.body.name],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.put("/api/roles/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `roles` SET `name`= ? WHERE id = ?",
+    [req.body.name, req.body.id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.delete("/api/roles/delete", function (req, res, next) {
+  try {
+    connection.query(
+      "DELETE FROM `roles` WHERE id = ?",
+      [req.query.id],
       (err, results) => {
         if (err) {
           res.status(500).json({ err });
