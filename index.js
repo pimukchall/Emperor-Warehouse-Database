@@ -17,7 +17,7 @@ const app = express();
 
 app.use(express.json());
 
-const allowedOrigins = ['https://emp-lv19lq3ja-usbseven.vercel.app', 'http://localhost:3000'];
+const allowedOrigins = ['https://emp-app-ten.vercel.app', 'http://localhost:3000'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.includes(origin) || !origin) {
