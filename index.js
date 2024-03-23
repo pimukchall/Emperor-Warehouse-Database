@@ -81,21 +81,6 @@ app.post("/api/users/login", async (req, res) => {
   }
 });
 
-app.get("/api/users/verify", async (req, res) => {
-  try {
-    const token = req.cookies.token
-    if (!token) {
-      return res.status(401).json({ message: 'Unauthorized' })
-    }
-    const decoded = jwt.verify(token, secret)
-    res.json({ message: 'Authorized', decoded })
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Internal server error' })
-  }
-}
-);
-
 app.get("/api/users/me", async (req, res) => {
   try {
     const token = req.cookies.token
@@ -145,7 +130,6 @@ app.get("/api/users/:id", function (req, res, next) {
     }
   );
 });
-
 
 app.post("/api/users/register", async (req, res) => {
   try {
