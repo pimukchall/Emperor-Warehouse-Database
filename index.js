@@ -546,19 +546,10 @@ app.put("/api/products/update", function (req, res, next) {
       req.body.id,
     ],
     function (err, results) {
-      if (err) {
-        // Handle error properly
-        console.error(err);
-        res.status(500).json({ error: 'Internal Server Error' });
-        return;
-      }
-      // If the query executes successfully, send back the results
       res.json(results);
     }
   );
 });
-
-
 
 app.delete("/api/products/delete", function (req, res, next) {
   try {
