@@ -461,7 +461,7 @@ app.get("/api/products/:id", function (req, res, next) {
 
 app.post("/api/products/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `products`(`name`, `user_id`, `category_id`, `location_id`, `store_id`, `status_id`, `asset_number`, `document_number`, `quantity`, `size`, `price`, `date_in`, `date_out`, `file`, `note`, `brand`, `model`, `cpu`, `mainboard`, `gpu`, `ram`, `storage`, `os`, `licence`, `resolution`, `serial_number`, `type_printer_id`, `type_inks_id`, `inks`, `print_maximum`, `ip_address`, `mac_address`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO `products`(`name`, `user_id`, `category_id`, `location_id`, `store_id`, `status_id`, `asset_number`, `document_number`, `quantity`, `size`, `price`, `date_in`, `date_out`, `file`, `note`, `brand`, `model`, `cpu`, `mainboard`, `gpu`, `ram`, `storage`, `os`, `license`, `resolution`, `serial_number`, `type_printer_id`, `type_inks_id`, `inks`, `print_maximum`, `ip_address`, `mac_address`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       req.body.name, 
       req.body.user_id, 
@@ -486,7 +486,7 @@ app.post("/api/products/create", function (req, res, next) {
       req.body.ram, 
       req.body.storage, 
       req.body.os, 
-      req.body.licence, 
+      req.body.license, 
       req.body.resolution, 
       req.body.serial_number, 
       req.body.type_printer_id, 
@@ -509,7 +509,7 @@ app.post("/api/products/create", function (req, res, next) {
 
 app.put("/api/products/update", function (req, res, next) {
   connection.query(
-    "UPDATE `products` SET `name`= ?, `user_id`= ?, `category_id`= ?, `location_id`= ?, `store_id`= ?, `status_id`= ?, `asset_number`= ?, `document_number`= ?, `quantity`= ?, `size`= ?, `price`= ?, `date_in`= ?, `date_out`= ?, `file`= ?, `note`= ?, `brand`= ?, `model`= ?, `cpu`= ?, `mainboard`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `licence`= ?, `resolution`= ?, `serial_number`= ?, `type_printer_id`= ?, `type_inks_id`= ?, `inks`= ?, `print_maximum`= ?, `ip_address`= ?, `mac_address`= ? WHERE id = ?",
+    "UPDATE `products` SET `name`= ?, `user_id`= ?, `category_id`= ?, `location_id`= ?, `store_id`= ?, `status_id`= ?, `asset_number`= ?, `document_number`= ?, `quantity`= ?, `size`= ?, `price`= ?, `date_in`= ?, `date_out`= ?, `file`= ?, `note`= ?, `brand`= ?, `model`= ?, `cpu`= ?, `mainboard`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `license`= ?, `resolution`= ?, `serial_number`= ?, `type_printer_id`= ?, `type_inks_id`= ?, `inks`= ?, `print_maximum`= ?, `ip_address`= ?, `mac_address`= ? WHERE id = ?",
     [
       req.body.name,
       req.body.user_id,
@@ -534,7 +534,7 @@ app.put("/api/products/update", function (req, res, next) {
       req.body.ram,
       req.body.storage,
       req.body.os,
-      req.body.licence,
+      req.body.license,
       req.body.resolution,
       req.body.serial_number,
       req.body.type_printer_id,
