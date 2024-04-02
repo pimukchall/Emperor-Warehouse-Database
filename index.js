@@ -4,8 +4,6 @@ const mysql = require("mysql2");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
-const multer  = require('multer')
-const upload = multer({ dest: 'uploads/' })
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -133,7 +131,7 @@ app.get("/api/users/:id", function (req, res, next) {
 
 app.post("/api/users/register", async (req, res) => {
   try {
-    const { fname, lname, department_id, role_id, email, password, phone, date_in, image } = req.body
+    const { fname, lname, department_id, role_id, email, password, phone, empcode, date_in } = req.body
     const passwordHash = await bcrypt.hash(password, 10)
     const userData = {
       fname,
@@ -143,8 +141,8 @@ app.post("/api/users/register", async (req, res) => {
       email,
       password: passwordHash,
       phone,
-      date_in,
-      image
+      empcode,
+      date_in
     }
     const [results] = await connection.promise().query("INSERT INTO `users` SET ?", userData)
     res.json({
@@ -161,7 +159,7 @@ app.post("/api/users/register", async (req, res) => {
 });
 app.put("/api/users/update", function (req, res, next) {
   connection.query(
-    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `image`= ? WHERE id = ?",
+    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `empcode`= ? WHERE id = ?",
     [
       req.body.fname,
       req.body.lname,
@@ -169,7 +167,7 @@ app.put("/api/users/update", function (req, res, next) {
       req.body.role_id,
       req.body.email,
       req.body.phone,
-      req.body.image,
+      req.body.empcode,
       req.body.id,
 
     ],
@@ -212,177 +210,6 @@ app.delete("/api/users/delete", function (req, res, next) {
   } catch (error) {}
 });
 
-// notebooks -----------------------------------------------------------------------------------------------------------
-app.get("/api/notebooks", function (req, res, next) {
-  connection.query(
-    "SELECT * FROM `notebooks`",
-    function (err, results, fields) {
-      res.json(results);
-    }
-  );
-});
-
-app.get("/api/notebooks/:id", function (req, res, next) {
-  const id = req.params.id;
-  connection.query(
-    "SELECT * FROM `notebooks` WHERE `id` = ?",
-    [id],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-
-app.post("/api/notebooks/create", function (req, res, next) {
-  connection.query(
-    "INSERT INTO `notebooks`(`brand`, `model`, `cpu`, `gpu`, `ram`, `storage`, `os`, `asset_number`, `license_window`, `user_id`, `employee_id`, `store_id`, `date_in`, `status`, `note`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-    [
-      req.body.brand,
-      req.body.model,
-      req.body.cpu,
-      req.body.gpu,
-      req.body.ram,
-      req.body.storage,
-      req.body.os,
-      req.body.asset_number,
-      req.body.license_window,
-      req.body.user_id,
-      req.body.employee_id,
-      req.body.store_id,
-      req.body.date_in,
-      req.body.status,
-      req.body.note,
-    ],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-
-app.put("/api/notebooks/update", function (req, res, next) {
-  connection.query(
-    "UPDATE `notebooks` SET `brand`= ?, `model`= ?, `cpu`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `asset_number`= ?, `license_window`= ?, `user_id`= ?, `employee_id`= ?, `store_id`= ?, `date_out`= ?, `status`= ?, `note`= ? WHERE id = ?",
-    [
-      req.body.brand,
-      req.body.model,
-      req.body.cpu,
-      req.body.gpu,
-      req.body.ram,
-      req.body.storage,
-      req.body.os,
-      req.body.asset_number,
-      req.body.license_window,
-      req.body.user_id,
-      req.body.employee_id,
-      req.body.store_id,
-      req.body.date_out,
-      req.body.status,
-      req.body.note,
-      req.body.id,
-    ],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-
-app.delete("/api/notebooks/delete", function (req, res, next) {
-  try {
-    connection.query(
-      "DELETE FROM `notebooks` WHERE id = ?",
-      [req.query.id],
-      (err, results) => {
-        if (err) {
-          res.status(500).json({ err });
-        }
-        return res.status(200).json(results);
-      }
-    );
-  } catch (error) {}
-});
-
-// equipments -----------------------------------------------------------------------------------------------------------
-app.get("/api/equipments", function (req, res, next) {
-  connection.query(
-    "SELECT * FROM `equipments`",
-    function (err, results, fields) {
-      res.json(results);
-    }
-  );
-});
-
-app.get("/api/equipments/:id", function (req, res, next) {
-  const id = req.params.id;
-  connection.query(
-    "SELECT * FROM `equipments` WHERE `id` = ?",
-    [id],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-
-app.post("/api/equipments/create", function (req, res, next) {
-  connection.query(
-    "INSERT INTO `equipments`(`name`, `location_id`, `user_id`, `employee_id`, `store_id` , `asset_number`, `document_number`, `price`, `quantity`, `date_in` , `status` , `note`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-    [
-      req.body.name,
-      req.body.location_id,
-      req.body.user_id,
-      req.body.employee_id,
-      req.body.store_id,
-      req.body.asset_number,
-      req.body.document_number,
-      req.body.price,
-      req.body.quantity,
-      req.body.date_in,
-      req.body.status,
-      req.body.note,
-    ],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-
-app.put("/api/equipments/update", function (req, res, next) {
-  connection.query(
-    "UPDATE `equipments` SET `name`= ?, `location_id`= ?, `user_id`= ?, `employee_id`= ?, `store_id`= ?, `asset_number`= ?, `document_number`= ?, `price`= ?,`quantity`= ?, `date_out`= ?, `status`= ?, `note`= ? WHERE id = ?",
-    [
-      req.body.name,
-      req.body.location_id,
-      req.body.user_id,
-      req.body.employee_id,
-      req.body.store_id,
-      req.body.asset_number,
-      req.body.document_number,
-      req.body.price,
-      req.body.quantity,
-      req.body.date_out,
-      req.body.status,
-      req.body.note,
-      req.body.id,
-    ],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
-app.delete("/api/equipments/delete", function (req, res, next) {
-  try {
-    connection.query(
-      "DELETE FROM `equipments` WHERE id = ?",
-      [req.query.id],
-      (err, results) => {
-        if (err) {
-          res.status(500).json({ err });
-        }
-        return res.status(200).json(results);
-      }
-    );
-  } catch (error) {}
-});
-
 // locations -----------------------------------------------------------------------------------------------------------
 app.get("/api/locations", function (req, res, next) {
   connection.query(
@@ -406,8 +233,8 @@ app.get("/api/locations/:id", function (req, res, next) {
 
 app.post("/api/locations/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `locations`(`id`, `name`, `address`) VALUES (?,?,?)",
-    [req.body.id, req.body.name, req.body.address],
+    "INSERT INTO `locations`(`id`, `name`, `leader`, `phone`, `address`) VALUES (?,?,?,?,?)",
+    [req.body.id, req.body.name, req.body.leader, req.body.phone, req.body.address],
     function (err, results) {
       res.json(results);
     }
@@ -416,9 +243,11 @@ app.post("/api/locations/create", function (req, res, next) {
 
 app.put("/api/locations/update", function (req, res, next) {
   connection.query(
-    "UPDATE `locations` SET `location_name`= ?, `address`= ? WHERE id = ?",
+    "UPDATE `locations` SET `name`= ?, `leader`= ?, `phone`= ?, `address`= ? WHERE id = ?",
     [
       req.body.name,
+      req.body.leader,
+      req.body.phone,
       req.body.address,
       req.body.id,
     ],
@@ -519,8 +348,8 @@ app.get("/api/stores/:id", function (req, res, next) {
 
 app.post("/api/stores/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `stores`(`id`, `name`, `address`) VALUES (?,?,?)",
-    [req.body.id, req.body.name, req.body.address],
+    "INSERT INTO `stores`(`id`, `name`, `seller`, `phone`,`address`) VALUES (?,?,?,?,?)",
+    [req.body.id, req.body.name, req.body.seller, req.body.phone, req.body.address],
     function (err, results) {
       res.json(results);
     }
@@ -529,8 +358,8 @@ app.post("/api/stores/create", function (req, res, next) {
 
 app.put("/api/stores/update", function (req, res, next) {
   connection.query(
-    "UPDATE `stores` SET `name`= ? , `address`= ? WHERE id = ?",
-    [req.body.name, req.body.address ,req.body.id],
+    "UPDATE `stores` SET `name`= ? , `seller`= ? , `phone`= ? , `address`= ? WHERE id = ?",
+    [req.body.name, req.body.seller, req.body.phone, req.body.address, req.body.id],
     function (err, results) {
       res.json(results);
     }
@@ -582,8 +411,8 @@ app.post("/api/roles/create", function (req, res, next) {
 
 app.put("/api/roles/update", function (req, res, next) {
   connection.query(
-    "UPDATE `roles` SET `name`= ? WHERE id = ?",
-    [req.body.name, req.body.id],
+    "UPDATE `roles` SET `id`= ?, `name`= ? WHERE id = ?",
+    [req.body.id, req.body.name, req.body.id],
     function (err, results) {
       res.json(results);
     }
@@ -605,22 +434,24 @@ app.delete("/api/roles/delete", function (req, res, next) {
   } catch (error) {}
 });
 
-// employee -----------------------------------------------------------------------------------------------------------
+// categories -----------------------------------------------------------------------------------------------------------
+app.get("/api/categories", function (req, res, next) {
+  connection.query("SELECT * FROM `categories`", function (err, results, fields) {
+    res.json(results);
+  });
+});
 
-app.get("/api/employees", function (req, res, next) {
-  connection.query(
-    "SELECT * FROM `employees`",
-    function (err, results, fields) {
-      res.json(results);
-    }
-  );
-}
-);
+// products -----------------------------------------------------------------------------------------------------------
+app.get("/api/products", function (req, res, next) {
+  connection.query("SELECT * FROM `products`", function (err, results, fields) {
+    res.json(results);
+  });
+});
 
-app.get("/api/employees/:id", function (req, res, next) {
+app.get("/api/products/:id", function (req, res, next) {
   const id = req.params.id;
   connection.query(
-    "SELECT * FROM `employees` WHERE `id` = ?",
+    "SELECT * FROM `products` WHERE `id` = ?",
     [id],
     function (err, results) {
       res.json(results);
@@ -628,44 +459,111 @@ app.get("/api/employees/:id", function (req, res, next) {
   );
 });
 
-app.post("/api/employees/create", function (req, res, next) {
+app.post("/api/products/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `employees`(`id`, `fname`, `lname`, `department_id`, `code_emp`, `phone`) VALUES (?,?,?,?,?,?)",
+    "INSERT INTO `products`(`name`, `user_id`, `category_id`, `location_id`, `store_id`, `status_id`, `asset_number`, `document_number`, `quantity`, `size`, `price`, `date_in`, `date_out`, `file`, `note`, `brand`, `model`, `cpu`, `mainboard`, `gpu`, `ram`, `storage`, `os`, `licence`, `resolution`, `serial_number`, `type_printer_id`, `type_inks_id`, `inks`, `print_maximum`, `ip_address`, `mac_address`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
-      req.body.id,
-      req.body.fname,
-      req.body.lname,
-      req.body.department_id,
-      req.body.code_emp,
-      req.body.phone,
+      req.body.name, 
+      req.body.user_id, 
+      req.body.category_id, 
+      req.body.location_id, 
+      req.body.store_id, 
+      req.body.status_id, 
+      req.body.asset_number, 
+      req.body.document_number, 
+      req.body.quantity, 
+      req.body.size, 
+      req.body.price, 
+      req.body.date_in, 
+      req.body.date_out, 
+      req.body.file, 
+      req.body.note, 
+      req.body.brand, 
+      req.body.model, 
+      req.body.cpu, 
+      req.body.mainboard, 
+      req.body.gpu, 
+      req.body.ram, 
+      req.body.storage, 
+      req.body.os, 
+      req.body.licence, 
+      req.body.resolution, 
+      req.body.serial_number, 
+      req.body.type_printer_id, 
+      req.body.type_inks_id, 
+      req.body.inks, 
+      req.body.print_maximum, 
+      req.body.ip_address, 
+      req.body.mac_address
     ],
     function (err, results) {
+      if (err) {
+        console.error("Error inserting data:", err);
+        res.status(500).json({ error: "Error inserting data" });
+      } else {
+        res.status(200).json({ success: true });
+      }
+    }
+  );
+});
+
+app.put("/api/products/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `products` SET `name`= ?, `user_id`= ?, `category_id`= ?, `location_id`= ?, `store_id`= ?, `status_id`= ?, `asset_number`= ?, `document_number`= ?, `quantity`= ?, `size`= ?, `price`= ?, `date_in`= ?, `date_out`= ?, `file`= ?, `note`= ?, `brand`= ?, `model`= ?, `cpu`= ?, `mainboard`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `licence`= ?, `resolution`= ?, `serial_number`= ?, `type_printer_id`= ?, `type_inks_id`= ?, `inks`= ?, `print_maximum`= ?, `ip_address`= ?, `mac_address`= ? WHERE id = ?",
+    [
+      req.body.name,
+      req.body.user_id,
+      req.body.category_id,
+      req.body.location_id,
+      req.body.store_id,
+      req.body.status_id,
+      req.body.asset_number,
+      req.body.document_number,
+      req.body.quantity,
+      req.body.size,
+      req.body.price,
+      req.body.date_in,
+      req.body.date_out,
+      req.body.file,
+      req.body.note,
+      req.body.brand,
+      req.body.model,
+      req.body.cpu,
+      req.body.mainboard,
+      req.body.gpu,
+      req.body.ram,
+      req.body.storage,
+      req.body.os,
+      req.body.licence,
+      req.body.resolution,
+      req.body.serial_number,
+      req.body.type_printer_id,
+      req.body.type_inks_id,
+      req.body.inks,
+      req.body.print_maximum,
+      req.body.ip_address,
+      req.body.mac_address,
+      req.body.id,
+    ],
+    function (err, results) {
+      if (err) {
+        // Handle error properly
+        console.error(err);
+        res.status(500).json({ error: 'Internal Server Error' });
+        return;
+      }
+      // If the query executes successfully, send back the results
       res.json(results);
     }
   );
 });
 
-app.put("/api/employees/update", function (req, res, next) {
-  connection.query(
-    "UPDATE `employees` SET `fname`= ?, `lname`= ?, `department_id`= ?, `code_emp`= ?, `phone`= ? WHERE id = ?",
-    [
-      req.body.fname,
-      req.body.lname,
-      req.body.department_id,
-      req.body.code_emp,
-      req.body.phone,
-      req.body.id,
-    ],
-    function (err, results) {
-      res.json(results);
-    }
-  );
-});
 
-app.delete("/api/employees/delete", function (req, res, next) {
+
+app.delete("/api/products/delete", function (req, res, next) {
   try {
     connection.query(
-      "DELETE FROM `employees` WHERE id = ?",
+      "DELETE FROM `products` WHERE id = ?",
       [req.query.id],
       (err, results) => {
         if (err) {
@@ -676,3 +574,110 @@ app.delete("/api/employees/delete", function (req, res, next) {
     );
   } catch (error) {}
 });
+
+// status -----------------------------------------------------------------------------------------------------------
+app.get("/api/status", function (req, res, next) {
+  connection.query("SELECT * FROM `status`", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/status/:id", function (req, res, next) {
+  const id = req.params.id;
+  connection.query(
+    "SELECT * FROM `status` WHERE `id` = ?",
+    [id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/status/create", function (req, res, next) {
+  connection.query(
+    "INSERT INTO `status`(`id`, `name`) VALUES (?,?)",
+    [req.body.id, req.body.name],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.put("/api/status/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `status` SET `id`= ?, `name`= ? WHERE id = ?",
+    [req.body.id, req.body.name, req.body.id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.delete("/api/status/delete", function (req, res, next) {
+  try {
+    connection.query(
+      "DELETE FROM `status` WHERE id = ?",
+      [req.query.id],
+      (err, results) => {
+        if (err) {
+          res.status(500).json({ err });
+        }
+        return res.status(200).json(results);
+      }
+    );
+  } catch (error) {}
+});
+
+// categories -----------------------------------------------------------------------------------------------------------
+app.get("/api/categories", function (req, res, next) {
+  connection.query("SELECT * FROM `categories`", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/categories/:id", function (req, res, next) {
+  const id = req.params.id;
+  connection.query(
+    "SELECT * FROM `categories` WHERE `id` = ?",
+    [id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/categories/create", function (req, res, next) {
+  connection.query(
+    "INSERT INTO `categories`(`id`, `name`) VALUES (?,?)",
+    [req.body.id, req.body.name],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.put("/api/categories/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `categories` SET `id`= ?, `name`= ? WHERE id = ?",
+    [req.body.id, req.body.name, req.body.id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.delete("/api/categories/delete", function (req, res, next) {
+  try {
+    connection.query(
+      "DELETE FROM `categories` WHERE id = ?",
+      [req.query.id],
+      (err, results) => {
+        if (err) {
+          res.status(500).json({ err });
+        }
+        return res.status(200).json(results);
+      }
+    );
+  } catch (error) {}
+});
+
