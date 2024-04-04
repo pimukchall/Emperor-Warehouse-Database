@@ -159,7 +159,7 @@ app.post("/api/users/register", async (req, res) => {
 });
 app.put("/api/users/update", function (req, res, next) {
   connection.query(
-    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `empcode`= ? WHERE id = ?",
+    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `empcode`= ?, `date_in`= ? WHERE id = ?",
     [
       req.body.fname,
       req.body.lname,
@@ -168,6 +168,7 @@ app.put("/api/users/update", function (req, res, next) {
       req.body.email,
       req.body.phone,
       req.body.empcode,
+      new Date(req.body.date_in).toISOString().slice(0, 19).replace('T', ' '), // แปลงค่าวันที่ให้เป็นรูปแบบที่ถูกต้อง
       req.body.id,
 
     ],
@@ -459,6 +460,78 @@ app.get("/api/products/:id", function (req, res, next) {
   );
 });
 
+app.get("/api/notebook", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 1", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/desktop", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 2", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/monitor", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 3", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/smartphone", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 4", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/printer", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 5", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/network", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 6", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/accessories", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 7", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/camera", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 8", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/ip", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 9", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/office", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 10", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/equipment", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 11", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/vehicle", function (req, res, next) {
+  connection.query("SELECT * FROM `products` WHERE `category_id` = 12", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
 app.post("/api/products/create", function (req, res, next) {
   connection.query(
     "INSERT INTO `products`(`name`, `user_id`, `category_id`, `location_id`, `store_id`, `status_id`, `asset_number`, `document_number`, `quantity`, `size`, `price`, `date_in`, `date_out`, `file`, `note`, `brand`, `model`, `cpu`, `mainboard`, `gpu`, `ram`, `storage`, `os`, `license`, `resolution`, `serial_number`, `type_printer_id`, `type_inks_id`, `inks`, `print_maximum`, `ip_address`, `mac_address`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -511,45 +584,51 @@ app.put("/api/products/update", function (req, res, next) {
   connection.query(
     "UPDATE `products` SET `name`= ?, `user_id`= ?, `category_id`= ?, `location_id`= ?, `store_id`= ?, `status_id`= ?, `asset_number`= ?, `document_number`= ?, `quantity`= ?, `size`= ?, `price`= ?, `date_in`= ?, `date_out`= ?, `file`= ?, `note`= ?, `brand`= ?, `model`= ?, `cpu`= ?, `mainboard`= ?, `gpu`= ?, `ram`= ?, `storage`= ?, `os`= ?, `license`= ?, `resolution`= ?, `serial_number`= ?, `type_printer_id`= ?, `type_inks_id`= ?, `inks`= ?, `print_maximum`= ?, `ip_address`= ?, `mac_address`= ? WHERE id = ?",
     [
-      req.body.name,
-      req.body.user_id,
-      req.body.category_id,
-      req.body.location_id,
-      req.body.store_id,
-      req.body.status_id,
-      req.body.asset_number,
-      req.body.document_number,
-      req.body.quantity,
-      req.body.size,
-      req.body.price,
-      req.body.date_in,
-      req.body.date_out,
-      req.body.file,
-      req.body.note,
-      req.body.brand,
-      req.body.model,
-      req.body.cpu,
-      req.body.mainboard,
-      req.body.gpu,
-      req.body.ram,
-      req.body.storage,
-      req.body.os,
-      req.body.license,
-      req.body.resolution,
-      req.body.serial_number,
-      req.body.type_printer_id,
-      req.body.type_inks_id,
-      req.body.inks,
-      req.body.print_maximum,
-      req.body.ip_address,
-      req.body.mac_address,
-      req.body.id,
+      req.body.name, 
+      req.body.user_id, 
+      req.body.category_id, 
+      req.body.location_id, 
+      req.body.store_id, 
+      req.body.status_id, 
+      req.body.asset_number, 
+      req.body.document_number, 
+      req.body.quantity, 
+      req.body.size, 
+      req.body.price, 
+      new Date(req.body.date_in).toISOString().slice(0, 19).replace('T', ' '), // แปลงค่าวันที่ให้เป็นรูปแบบที่ถูกต้อง
+      new Date(req.body.date_out).toISOString().slice(0, 19).replace('T', ' '), // แปลงค่าวันที่ให้เป็นรูปแบบที่ถูกต้อง
+      req.body.file, 
+      req.body.note, 
+      req.body.brand, 
+      req.body.model, 
+      req.body.cpu, 
+      req.body.mainboard, 
+      req.body.gpu, 
+      req.body.ram, 
+      req.body.storage, 
+      req.body.os, 
+      req.body.license, 
+      req.body.resolution, 
+      req.body.serial_number, 
+      req.body.type_printer_id, 
+      req.body.type_inks_id, 
+      req.body.inks, 
+      req.body.print_maximum, 
+      req.body.ip_address, 
+      req.body.mac_address, 
+      req.body.id
     ],
     function (err, results) {
-      res.json(results);
+      if (err) {
+        console.error("Error updating data:", err);
+        res.status(500).json({ error: "Error updating data" });
+      } else {
+        res.status(200).json({ success: true });
+      }
     }
   );
 });
+
 
 app.delete("/api/products/delete", function (req, res, next) {
   try {
