@@ -234,8 +234,8 @@ app.get("/api/locations/:id", function (req, res, next) {
 
 app.post("/api/locations/create", function (req, res, next) {
   connection.query(
-    "INSERT INTO `locations`(`id`, `name`, `leader`, `phone`, `address`) VALUES (?,?,?,?,?)",
-    [req.body.id, req.body.name, req.body.leader, req.body.phone, req.body.address],
+    "INSERT INTO `locations`(`id`, `name`, `leader`, `phone`, `address` ,`link`) VALUES (?,?,?,?,?,?)",
+    [req.body.id, req.body.name, req.body.leader, req.body.phone, req.body.address, req.body.link],
     function (err, results) {
       res.json(results);
     }
@@ -244,12 +244,13 @@ app.post("/api/locations/create", function (req, res, next) {
 
 app.put("/api/locations/update", function (req, res, next) {
   connection.query(
-    "UPDATE `locations` SET `name`= ?, `leader`= ?, `phone`= ?, `address`= ? WHERE id = ?",
+    "UPDATE `locations` SET `name`= ?, `leader`= ?, `phone`= ?, `address`= ? , `link`= ? WHERE id = ?",
     [
       req.body.name,
       req.body.leader,
       req.body.phone,
       req.body.address,
+      
       req.body.id,
     ],
     function (err, results) {
@@ -751,3 +752,40 @@ app.delete("/api/categories/delete", function (req, res, next) {
   } catch (error) {}
 });
 
+// logs -----------------------------------------------------------------------------------------------------------
+app.get("/api/logs", function (req, res, next) {
+  connection.query("SELECT * FROM `logs`", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/logs/:id", function (req, res, next) {
+  const id = req.params.id;
+  connection.query(
+    "SELECT * FROM `logs` WHERE `id` = ?",
+    [id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/logs/create", function (req, res, next) {
+  connection.query(
+    "INSERT INTO `logs`(`user_id`, `product_id`, `action`, `description`, `time`) VALUES (?,?,?,?,?)",
+    [req.body.user_id, req.body.product_id, req.body.action, req.body.description, req.body.time],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.put("/api/logs/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `logs` SET `user_id`, `product_id`= ?, `action`= ?, `description`= ?, `time`= ? WHERE id = ?",
+    [req.body.user_id, req.body.product_id, req.body.action, req.body.description, req.body.time, req.body.id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
