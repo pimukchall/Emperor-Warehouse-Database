@@ -4,6 +4,37 @@ const mysql = require("mysql2");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
+const multer = require("multer");
+const fs = require('fs');
+const storage = multer.diskStorage({
+  destination: function (req, file, callback) {
+    callback(null, "./uploads/");
+  },
+  filename: function (req, file, callback) {
+    const uploadDir = 'uploads/';
+    const extension = file.originalname.split('.').pop();
+    const baseName = file.originalname.substring(0, file.originalname.lastIndexOf('.'));
+
+    fs.readdir(uploadDir, (err, files) => {
+      if (err) {
+        console.error('Error getting directory information:', err);
+        callback(err);
+      } else {
+        let count = 1;
+        let newFileName = file.originalname;
+
+        while (files.includes(newFileName)) {
+          newFileName = `${baseName}_${count}.${extension}`;
+          count++;
+        }
+
+        callback(null, newFileName);
+      }
+    });
+  },
+});
+
+const upload = multer({ storage: storage });
 
 const connection = mysql.createConnection({
   host: "localhost",
@@ -159,7 +190,7 @@ app.post("/api/users/register", async (req, res) => {
 });
 app.put("/api/users/update", function (req, res, next) {
   connection.query(
-    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `empcode`= ?, `date_in`= ? WHERE id = ?",
+    "UPDATE `users` SET `fname`= ?, `lname`= ?, `department_id`= ?, `role_id`= ?, `email`= ?, `phone`= ?, `empcode`= ?, `file`= ?, `date_in`= ? WHERE id = ?",
     [
       req.body.fname,
       req.body.lname,
@@ -168,6 +199,8 @@ app.put("/api/users/update", function (req, res, next) {
       req.body.email,
       req.body.phone,
       req.body.empcode,
+      req.body.file,
+
       new Date(req.body.date_in).toISOString().slice(0, 19).replace('T', ' '), // แปลงค่าวันที่ให้เป็นรูปแบบที่ถูกต้อง
       req.body.id,
 
@@ -789,3 +822,29 @@ app.put("/api/logs/update", function (req, res, next) {
     }
   );
 });
+
+// files -----------------------------------------------------------------------------------------------------------
+app.get("/api/files", (req, res) => {
+  res.sendFile(__dirname + "/uploads/" + req.query.filename);
+})
+
+app.post("/api/files/upload", upload.single("file"), (req, res) => {
+  res.send(req.file);
+})
+
+app.put("/api/files/updatePath", async (req, res) => {
+  try {
+    const { id, file } = req.body
+    const [results] = await connection.promise().query('UPDATE users SET file = ? WHERE id = ?', [file, id])
+    res.json({
+      message: 'File updated',
+      results
+    })
+  } catch (error) {
+    console.log(error)
+    res.json({
+      message: 'File update failed',
+      error
+    })
+  }
+})
