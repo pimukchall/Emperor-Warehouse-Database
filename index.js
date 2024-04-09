@@ -33,19 +33,13 @@ const storage = multer.diskStorage({
     });
   },
 });
-
 const upload = multer({ storage: storage });
-
 const connection = mysql.createConnection({
   host: "localhost",
   user: "root",
   database: "empdb",
 });
-
 const app = express();
-
-app.use(express.json());
-
 const allowedOrigins = ['https://emp-app-ten.vercel.app', 'http://localhost:3000'];
 const corsOptions = {
   origin: function (origin, callback) {
@@ -57,12 +51,13 @@ const corsOptions = {
   },
   credentials: true,
 };
-
-app.use(cors(corsOptions));
-
-app.use(cookieParser());
 const port = 3001
 const secret = 'mysecret'
+const path = require('path')
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+app.use(cookieParser());
+app.use(cors(corsOptions));
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
