@@ -827,10 +827,27 @@ app.post("/api/files/upload", upload.single("file"), (req, res) => {
   res.send(req.file);
 })
 
-app.put("/api/files/updatePath", async (req, res) => {
+app.put("/api/files/user", async (req, res) => {
   try {
     const { id, file } = req.body
     const [results] = await connection.promise().query('UPDATE users SET file = ? WHERE id = ?', [file, id])
+    res.json({
+      message: 'File updated',
+      results
+    })
+  } catch (error) {
+    console.log(error)
+    res.json({
+      message: 'File update failed',
+      error
+    })
+  }
+})
+
+app.put("/api/files/product", async (req, res) => {
+  try {
+    const { id, file } = req.body
+    const [results] = await connection.promise().query('UPDATE products SET file = ? WHERE id = ?', [file, id])
     res.json({
       message: 'File updated',
       results
