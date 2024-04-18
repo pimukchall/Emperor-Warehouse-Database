@@ -74,34 +74,28 @@ app.post("/api/users/login", async (req, res) => {
     const { email, password } = req.body
     const [results] = await connection.promise().query("SELECT * FROM `users` WHERE `email` = ?", email)
     const userData = results[0]
+
+    if (!userData) {
+      return res.status(400).json({ message: 'Login failed(Invalid email or password)' })
+    }
+
     const match = await bcrypt.compare(password, userData.password)
     if (!match) {
-
-      return res.status(400).json({
-        message: 'Login failed(Invalid email or password)'
-      })
-      return false
+      return res.status(400).json({ message: 'Login failed(Invalid email or password)'})
     }
 
     const token = jwt.sign({ email: userData.email, id: userData.id }, secret, { expiresIn: '1h' })
     res.cookie('token', token, { 
-      maxAge: 300000,
+      maxAge: 3600000,
       secure: true,
       httpOnly: true,
       sameSite: 'none',
      })
 
-     res.json({ 
-      success: true,
-        token: token,
-    })
-
+     res.json({ success: true, token: token });
   } catch (error) {
-    console.log('error', error)
-    res.status(401).json({
-      message: "Login failed",
-      error
-    })
+    console.log('Login error', error)
+    res.status(500).json({ message: 'Internal server error'})
   }
 });
 
@@ -109,12 +103,18 @@ app.get("/api/users/me", async (req, res) => {
   try {
     const token = req.cookies.token
     console.log('token', token)
+
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' })
     }
     const decoded = jwt.verify(token, secret)
     const [results] = await connection.promise().query('SELECT * FROM users WHERE id = ?', decoded.id)
     const userData = results[0]
+
+    if (!userData) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+
     res.json({
       user: {
         id: userData.id,
@@ -860,3 +860,69 @@ app.put("/api/files/product", async (req, res) => {
     })
   }
 })
+
+// customers -----------------------------------------------------------------------------------------------------------
+
+app.get("/api/customers", function (req, res, next) {
+  connection.query("SELECT * FROM `customers`", function (err, results, fields) {
+    res.json(results);
+  });
+});
+
+app.get("/api/customers/:id", function (req, res, next) {
+  const id = req.params.id;
+  connection.query(
+    "SELECT * FROM `customers` WHERE `id` = ?",
+    [id],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/customers/create", function (req, res, next) {
+  connection.query(
+    "INSERT INTO `customers`(`fname`, `lname`, `address`, `idcard` ,`companay_number` ,`phone`, `email`, `link` , `date_in`) VALUES (?,?,?,?,?,?,?,?,?)",
+    [req.body.fname, req.body.lname, req.body.address, req.body.idcard, req.body.companay_number, req.body.phone, req.body.email, req.body.link, req.body.date_in],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.put("/api/customers/update", function (req, res, next) {
+  connection.query(
+    "UPDATE `customers` SET `fname`= ?, `lname`= ?, `address`= ?, `idcard`= ?, `companay_number`= ?, `phone`= ?, `email`= ?, `link`= ?, `date_in`= ? WHERE id = ?",
+    [
+      req.body.fname,
+      req.body.lname,
+      req.body.address,
+      req.body.idcard,
+      req.body.companay_number,
+      req.body.phone,
+      req.body.email,
+      req.body.link,
+      new Date(req.body.date_in).toISOString().slice(0, 19).replace('T', ' '),
+      req.body.id,
+    ],
+    function (err, results) {
+      res.json(results);
+    }
+  );
+});
+
+app.delete("/api/customers/delete", function (req, res, next) {
+  try {
+    connection.query(
+      "DELETE FROM `customers` WHERE id = ?",
+      [req.query.id],
+      (err, results) => {
+        if (err) {
+          res.status(500).json({ err });
+        }
+        return res.status(200).json(results);
+      }
+    );
+  } catch (error) {}
+});
+
