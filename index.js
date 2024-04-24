@@ -120,7 +120,8 @@ app.get("/api/users/me", async (req, res) => {
         id: userData.id,
         fname: userData.fname,
         lname: userData.lname,
-        email: userData.email
+        email: userData.email,
+        role_id: userData.role_id
       }
     })
   } catch (error) {
