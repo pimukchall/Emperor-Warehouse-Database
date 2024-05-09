@@ -40,7 +40,8 @@ const connection = mysql.createConnection({
   database: "empdb",
 });
 const app = express();
-const allowedOrigins = ['https://emp-app-ten.vercel.app', 'http://localhost:3000'];
+const allowedOrigins = ['http://localhost:3000']
+console.log('allowedOrigins', allowedOrigins)
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.includes(origin) || !origin) {
